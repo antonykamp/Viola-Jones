@@ -2,7 +2,9 @@ import numpy as np
 from PIL import Image
 from violajones.HaarLikeFeature import FeatureType
 from functools import partial
+import violajones.IntegralImage as ii
 import os
+import progressbar
 
 
 def ensemble_vote(int_img, classifiers):
@@ -99,10 +101,12 @@ def reconstruct(classifiers, img_size):
 
 
 def load_images(path):
-    images = []
-    for _file in os.listdir(path):
-        if _file.endswith('.png'):
-            img_arr = np.array(Image.open((os.path.join(path, _file))), dtype=np.float64)
+    images = [] 
+    bar = progressbar.ProgressBar()
+    for _file in bar(os.listdir(path)):
+        if _file.endswith('.npy'):
+            img_arr = np.load(os.path.join(path, _file))
             img_arr /= img_arr.max()
-            images.append(img_arr)
+            int_arr = ii.to_integral_image(img_arr)
+            images.append(int_arr)
     return images
