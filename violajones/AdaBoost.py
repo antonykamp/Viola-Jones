@@ -29,7 +29,9 @@ def learn(positive_iis, negative_iis, num_classifiers=-1, min_feature_width=1, m
     num_pos = len(positive_iis)
     num_neg = len(negative_iis)
     num_imgs = num_pos + num_neg
-    img_height, img_width = positive_iis[0].shape
+    #img_height, img_width = positive_iis[0].shape
+    img_height = min([pic.shape[1] for pic in positive_iis + negative_iis])
+    img_width = min([pic.shape[0] for pic in positive_iis + negative_iis])
 
     # Maximum feature width and height default to image width and height
     max_feature_height = img_height if max_feature_height == -1 else max_feature_height
