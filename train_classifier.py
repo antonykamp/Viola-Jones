@@ -6,14 +6,12 @@ import numpy as np
 import sys
 
 # sys.argv
-# 1 positive training np files
+# 1 positive training npy files
 # 2 negative training npy files
 # 3 output path
 if __name__ == "__main__":
     pos_training_path = sys.argv[1]
     neg_training_path = sys.argv[2]
-    pos_testing_path = sys.argv[3]
-    neg_testing_path = sys.argv[4]
 
     num_classifiers = 3
     # For performance reasons restricting feature size
@@ -33,7 +31,8 @@ if __name__ == "__main__":
     
     if len(sys.argv) < 3:
       exit()
-      
+    pos_testing_path = sys.argv[3]
+    neg_testing_path = sys.argv[4]
     print('Loading test faces..')
     faces_testing = utils.load_images(pos_testing_path)
     print('..done. ' + str(len(faces_testing)) + ' faces loaded.\n\nLoading test non faces..')
