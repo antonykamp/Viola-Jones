@@ -87,3 +87,43 @@ class HaarLikeFeature(object):
         """
         score = self.get_score(int_img)
         return self.weight * (1 if score < self.polarity * self.threshold else -1)
+    
+    def get_vote_specified_position(self, int_img, top_left, bottom_right):
+        old_top_left = self.top_left
+        old_bottom_right = self.bottom_right
+        
+        self.top_left = top_left
+        self.bottom_right = bottom_right
+        
+        vote = self.get_vote(int_img)
+        
+        self.top_left = old_top_left
+        self.bottom_right = old_bottom_right
+        
+        return vote
+    
+    def get_best_vote(self, int_img):
+        int_img_height, int_img_width = int_img.shape
+        
+        max_vote = -float("inf")
+        
+        for left_border in range(int_img_width-self.width-1):
+            for top_border in range(int_img_height-self.height-1):
+                tmp_top_left = (left_border, top_border)
+                tmp_bottom_right = (left_border+self.width, top_border+self.height)
+                max_vote = max(max_vote, self.get_vote_specified_position(int_img, tmp_top_left, tmp_bottom_right))
+        return max_vote
+    
+    def get_positive_vite_positions(self, int_img):
+        int_img_height, int_img_width = int_img.shape
+        
+        pos_features = []
+        
+        for left_border in range(int_img_width-self.width-1):
+            for top_border in range(int_img_height-self.height-1):
+                tmp_top_left = (left_border, top_border)
+                tmp_bottom_right = (left_border+self.width, top_border+self.height)
+                if self.get_vote_specified_position(int_img, tmp_top_left, tmp_bottom_right) > 0:
+                    pos_features.append((tmp_top_left, tmp_bottom_right))
+                    
+        return pos_features

@@ -23,6 +23,22 @@ def ensemble_vote(int_img, classifiers):
     return 1 if sum([c.get_vote(int_img) for c in classifiers]) >= 0 else 0
 
 
+def ensemble_all_vote(int_img, classifiers):
+    """
+    Classifies given integral image (numpy array) using given classifiers, i.e.
+    if the sum of all classifier votes is greater 0, image is classified
+    positively (1) else negatively (0). The threshold is 0, because votes can be
+    +1 or -1. Unlike ensemble_vote, the features are not only applied to one position.
+    :param int_img: Integral image to be classified
+    :type int_img: numpy.ndarray
+    :param classifiers: List of classifiers
+    :type classifiers: list[violajones.HaarLikeFeature.HaarLikeFeature]
+    :return: 1 iff sum of classifier votes is greater 0, else 0
+    :rtype: int
+    """
+    return 1 if sum([c.get_best_vote(int_img) for c in classifiers]) >= 0 else 0
+
+
 def ensemble_vote_all(int_imgs, classifiers):
     """
     Classifies given list of integral images (numpy arrays) using classifiers,
@@ -40,6 +56,41 @@ def ensemble_vote_all(int_imgs, classifiers):
     vote_partial = partial(ensemble_vote, classifiers=classifiers)
     return list(map(vote_partial, int_imgs))
 
+
+def ensemble_all_vote_all(int_imgs, classifiers):
+    """
+    Classifies given list of integral images (numpy arrays) using classifiers,
+    i.e. if the sum of all classifier votes is greater 0, an image is classified
+    positively (1) else negatively (0). The threshold is 0, because votes can be
+    +1 or -1. Unlike ensemble_vote_all, the features are not only applied to one position.
+    :param int_imgs: List of integral images to be classified
+    :type int_imgs: list[numpy.ndarray]
+    :param classifiers: List of classifiers
+    :type classifiers: list[violajones.HaarLikeFeature.HaarLikeFeature]
+    :return: List of assigned labels, 1 if image was classified positively, else
+    0
+    :rtype: list[int]
+    """
+    vote_partial = partial(ensemble_all_vote, classifiers=classifiers)
+    return list(map(vote_partial, int_imgs))
+
+
+def ensemble_vote_cascading(int_img, classifiers):
+    pos_list = []
+    for c in classifiers:
+        pos_list.extend(c.get_positive_vite_positions(int_img))
+    for (top_left, bottom_right) in pos_list:
+        for c in classifiers:
+            sum_value = sum([c.get_vote_specified_position(int_img, top_left, bottom_right) for c in classifiers])
+            if sum_value > 0:
+                return 1
+            
+    return 0
+
+    
+def ensemble_vote_all_cascading(int_imgs, classifiers):
+    vote_partial = partial(ensemble_vote_cascading, classifiers=classifiers)
+    return  (map(vote_partial, int_imgs))
 
 def reconstruct(classifiers, img_size):
     """
