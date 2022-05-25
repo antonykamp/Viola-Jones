@@ -41,7 +41,7 @@ def learn(positive_iis, negative_iis, num_classifiers=-1, min_feature_width=1, m
     pos_weights = np.ones(num_pos) * 1. / (2 * num_pos)
     neg_weights = np.ones(num_neg) * 1. / (2 * num_neg)
     weights = np.hstack((pos_weights, neg_weights))
-    labels = np.hstack((np.ones(num_pos), np.ones(num_neg) * -1))
+    labels = np.hstack((np.ones(num_pos), np.zeros(num_neg)))
 
     images = positive_iis + negative_iis
 
@@ -79,7 +79,7 @@ def learn(positive_iis, negative_iis, num_classifiers=-1, min_feature_width=1, m
             f_idx = feature_indexes[f]
             # classifier error is the sum of image weights where the classifier
             # is right
-            error = sum(map(lambda img_idx: weights[img_idx] if labels[img_idx] != votes[img_idx, f_idx] else 0, range(num_imgs)))
+            error = sum(map(lambda img_idx: weights[img_idx] * np.abs(votes[img_idx, f_idx] - labels[img_idx]), range(num_imgs)))
             classification_errors[f] = error
 
         # get best feature, i.e. with smallest error
