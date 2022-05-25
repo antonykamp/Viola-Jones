@@ -20,7 +20,7 @@ def ensemble_vote(int_img, classifiers):
     :return: 1 iff sum of classifier votes is greater 0, else 0
     :rtype: int
     """
-    return 1 if sum([c.get_vote(int_img) for c in classifiers]) >= 0 else 0
+    return 1 if sum([c.get_weighted_vote(int_img) for c in classifiers]) >= 0.5*sum([c.weight for c in classifiers]) else 0
 
 
 def ensemble_all_vote(int_img, classifiers):
@@ -36,7 +36,7 @@ def ensemble_all_vote(int_img, classifiers):
     :return: 1 iff sum of classifier votes is greater 0, else 0
     :rtype: int
     """
-    return 1 if sum([c.get_best_vote(int_img) for c in classifiers]) >= 0 else 0
+    return 1 if sum([c.get_weighted_vote(int_img, use_best_vote = True) for c in classifiers]) >= 0.5*sum([c.weight for c in classifiers]) else 0
 
 
 def ensemble_vote_all(int_imgs, classifiers):
@@ -74,23 +74,6 @@ def ensemble_all_vote_all(int_imgs, classifiers):
     vote_partial = partial(ensemble_all_vote, classifiers=classifiers)
     return list(map(vote_partial, int_imgs))
 
-
-def ensemble_vote_cascading(int_img, classifiers):
-    pos_list = []
-    for c in classifiers:
-        pos_list.extend(c.get_positive_vite_positions(int_img))
-    for (top_left, bottom_right) in pos_list:
-        for c in classifiers:
-            sum_value = sum([c.get_vote_specified_position(int_img, top_left, bottom_right) for c in classifiers])
-            if sum_value > 0:
-                return 1
-            
-    return 0
-
-    
-def ensemble_vote_all_cascading(int_imgs, classifiers):
-    vote_partial = partial(ensemble_vote_cascading, classifiers=classifiers)
-    return  (map(vote_partial, int_imgs))
 
 def reconstruct(classifiers, img_size):
     """
@@ -157,7 +140,7 @@ def load_images(path):
     for _file in bar(os.listdir(path)):
         if _file.endswith('.npy'):
             img_arr = np.load(os.path.join(path, _file))
-            img_arr /= img_arr.max()
+            # img_arr /= img_arr.max()
             int_arr = ii.to_integral_image(img_arr)
             images.append(int_arr)
     return images

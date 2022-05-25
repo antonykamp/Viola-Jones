@@ -54,49 +54,54 @@ def learn(positive_iis, negative_iis, num_classifiers=-1, min_feature_width=1, m
 
     print('Calculating scores for images..')
 
-    votes = np.zeros((num_imgs, num_features))
+    scores = np.zeros((num_imgs, num_features))
     bar = progressbar.ProgressBar()
     # Use as many workers as there are CPUs
     pool = Pool(processes=None)
     for i in bar(range(num_imgs)):
-        votes[i, :] = np.array(list(pool.map(partial(_get_feature_vote, image=images[i]), features)))
+        scores[i, :] = np.array(list(pool.map(partial(_get_feature_score, image=images[i]), features)))
 
     # select classifiers
 
     classifiers = []
 
     print('Selecting classifiers..')
-    bar = progressbar.ProgressBar()
-    for _ in bar(range(num_classifiers)):
-
+    for i in bar(range(num_classifiers)):
+        print('Classifier {}/{}'.format(i, num_classifiers))
         classification_errors = np.zeros(len(feature_indexes))
-
+        votes = np.zeros((num_features, num_imgs))
         # normalize weights
         weights *= 1. / np.sum(weights)
 
         # select best classifier based on the weighted error
-        for f in range(len(feature_indexes)):
+        bar = progressbar.ProgressBar()
+        for f in bar(range(len(feature_indexes))):
             f_idx = feature_indexes[f]
+            f_scores = [scores[img_idx, f_idx] for img_idx in range(num_imgs)]
+            f = features[f_idx]
+            f.fit(f_scores, labels)
+            f_votes = f.predict(f_scores)
+            votes[f_idx, :] = np.array(f_votes)
             # classifier error is the sum of image weights where the classifier
             # is right
-            error = sum(map(lambda img_idx: weights[img_idx] * np.abs(votes[img_idx, f_idx] - labels[img_idx]), range(num_imgs)))
-            classification_errors[f] = error
+            error = sum(map(lambda img_idx: weights[img_idx] * np.abs(f_votes[img_idx] - labels[img_idx]), range(num_imgs)))
+            classification_errors[f_idx] = error
 
         # get best feature, i.e. with smallest error
         min_error_idx = np.argmin(classification_errors)
         best_error = classification_errors[min_error_idx]
         best_feature_idx = feature_indexes[min_error_idx]
-
+        beta = best_error/(1-best_error)
+        
         # set feature weight
         best_feature = features[best_feature_idx]
-        feature_weight = 0.5 * np.log((1 - best_error) / best_error)
+        feature_weight = np.log(1/beta)
         best_feature.weight = feature_weight
 
         classifiers.append(best_feature)
 
         # update image weights
-        beta = best_error/(1-best_error)
-        weights = np.array(list(map(lambda img_idx: weights[img_idx] * beta**(int(labels[img_idx] == votes[img_idx, best_feature_idx])), range(num_imgs))))
+        weights = np.array(list(map(lambda img_idx: weights[img_idx] * beta**(int(labels[img_idx] == votes[best_feature_idx, img_idx])), range(num_imgs))))
 
         # remove feature (a feature can't be selected twice)
         feature_indexes.remove(best_feature_idx)
@@ -107,6 +112,8 @@ def learn(positive_iis, negative_iis, num_classifiers=-1, min_feature_width=1, m
 def _get_feature_vote(feature, image):
     return feature.get_vote(image)
 
+def _get_feature_score(feature, image):
+    return feature.get_score(image)
 
 def _create_features(img_height, img_width, min_feature_width, max_feature_width, min_feature_height, max_feature_height):
     print('Creating haar-like features..')
