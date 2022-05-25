@@ -1,5 +1,5 @@
 import violajones.IntegralImage as ii
-
+from sklearn.ensemble import AdaBoostClassifier
 
 def enum(**enums):
     return type('Enum', (), enums)
@@ -37,6 +37,7 @@ class HaarLikeFeature(object):
         self.threshold = threshold
         self.polarity = polarity
         self.weight = 1
+        self.adaboost = AdaBoostClassifier()
     
     def get_score(self, int_img):
         """
@@ -86,7 +87,19 @@ class HaarLikeFeature(object):
         :rtype: int
         """
         score = self.get_score(int_img)
-        return self.weight * (1 if score < self.polarity * self.threshold else -1)
+        return self.adaboost.predict([score])[0]
+    
+    def fit(self, scores, labels):
+        self.adaboost = AdaBoostClassifier(n_estimators=50, learning_rate=1)
+        self.adaboost.fit([[s] for s in scores], labels)
+    
+    def predict(self, scores):
+        return self.adaboost.predict([[s] for s in scores])
+        
+    def get_weighted_vote(self, int_img, use_best_vote=False):
+        if use_best_vote:
+            return self.weight * self.get_best_vote(int_img)
+        return self.weight * self.get_vote(int_img)
     
     def get_vote_specified_position(self, int_img, top_left, bottom_right):
         old_top_left = self.top_left
@@ -113,17 +126,4 @@ class HaarLikeFeature(object):
                 tmp_bottom_right = (left_border+self.width, top_border+self.height)
                 max_vote = max(max_vote, self.get_vote_specified_position(int_img, tmp_top_left, tmp_bottom_right))
         return max_vote
-    
-    def get_positive_vite_positions(self, int_img):
-        int_img_height, int_img_width = int_img.shape
-        
-        pos_features = []
-        
-        for left_border in range(int_img_width-self.width-1):
-            for top_border in range(int_img_height-self.height-1):
-                tmp_top_left = (left_border, top_border)
-                tmp_bottom_right = (left_border+self.width, top_border+self.height)
-                if self.get_vote_specified_position(int_img, tmp_top_left, tmp_bottom_right) > 0:
-                    pos_features.append((tmp_top_left, tmp_bottom_right))
-                    
-        return pos_features
+
