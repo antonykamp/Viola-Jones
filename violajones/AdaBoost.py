@@ -58,11 +58,11 @@ def learn(positive_iis, negative_iis, num_classifiers=-1, min_feature_width=1, m
     bar = progressbar.ProgressBar()
     # Use as many workers as there are CPUs
     pool = Pool(processes=None)
+    # Calculate score for each feature on each image
     for i in bar(range(num_imgs)):
         scores[i, :] = np.array(list(pool.map(partial(_get_feature_score, image=images[i]), features)))
 
     # select classifiers
-
     classifiers = []
 
     print('Selecting classifiers..')
@@ -79,7 +79,9 @@ def learn(positive_iis, negative_iis, num_classifiers=-1, min_feature_width=1, m
             f_idx = feature_indexes[f]
             f_scores = [scores[img_idx, f_idx] for img_idx in range(num_imgs)]
             f = features[f_idx]
+            # Train ababoost
             f.fit(f_scores, labels)
+            # predict with adaboost
             f_votes = f.predict(f_scores)
             votes[f_idx, :] = np.array(f_votes)
             # classifier error is the sum of image weights where the classifier
@@ -109,11 +111,9 @@ def learn(positive_iis, negative_iis, num_classifiers=-1, min_feature_width=1, m
     return classifiers
 
 
-def _get_feature_vote(feature, image):
-    return feature.get_vote(image)
-
 def _get_feature_score(feature, image):
     return feature.get_score(image)
+
 
 def _create_features(img_height, img_width, min_feature_width, max_feature_width, min_feature_height, max_feature_height):
     print('Creating haar-like features..')

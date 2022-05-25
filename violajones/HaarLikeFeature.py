@@ -83,25 +83,60 @@ class HaarLikeFeature(object):
         Get vote of this feature for given integral image.
         :param int_img: Integral image array
         :type int_img: numpy.ndarray
-        :return: 1 iff this feature votes positively, otherwise -1
+        :return: 1 iff this feature votes positively, otherwise 0
         :rtype: int
         """
         score = self.get_score(int_img)
         return self.adaboost.predict([score])[0]
     
     def fit(self, scores, labels):
+        """
+        Trains a simple classifier given scores and labels
+        :param scores: Array with the scores of images with this feature
+        :type scores: np.array
+        :param labels: Array with labels of the images
+        """
         self.adaboost = AdaBoostClassifier(n_estimators=50, learning_rate=1)
         self.adaboost.fit([[s] for s in scores], labels)
     
     def predict(self, scores):
+        """
+        Predicts the labels to an array of scores with this feature
+        :param scores: Array with the scores of images
+        :type scores: np.ndarray
+        :return: Array with predictions of the scores
+        :rtype: np.array
+        """
         return self.adaboost.predict([[s] for s in scores])
         
     def get_weighted_vote(self, int_img, use_best_vote=False):
+        """
+        Get vote of this feature for given integral image multiplied by the weight.
+        :param int_img: Integral image array
+        :type int_img: numpy.ndarray
+        :param use_best_vote: Wether it should use the best vote in the image or not
+        :type use_best_vote: bool
+        :return: 1 iff this feature votes positively, otherwise 0
+        :rtype: int
+        """
         if use_best_vote:
             return self.weight * self.get_best_vote(int_img)
         return self.weight * self.get_vote(int_img)
     
     def get_vote_specified_position(self, int_img, top_left, bottom_right):
+        """
+        Returns the vote of an image of this feature at a specific position. 
+        For this, the function edits the top_left and bottom_right instance variable 
+        temporarily
+        :param int_img: Integral image array
+        :type int_img: numpy.ndarray
+        :param top_left: New top left position of the feature
+        :param top_left: Tuple with integer
+        :param top_left: New bottom right position of the feature
+        :param top_left: Tuple with integer
+        :return: 1 if the best position votes positively, otherwise 0
+        :rtype: int
+        """
         old_top_left = self.top_left
         old_bottom_right = self.bottom_right
         
@@ -116,6 +151,13 @@ class HaarLikeFeature(object):
         return vote
     
     def get_best_vote(self, int_img):
+        """
+        Get best vote of an integral image with this feature indepentend of the position.
+        :param int_img: Integral image array
+        :type int_img: numpy.ndarray
+        :return: 1 if the best position votes positively, otherwise 0
+        :rtype: int
+        """
         int_img_height, int_img_width = int_img.shape
         
         max_vote = -float("inf")
