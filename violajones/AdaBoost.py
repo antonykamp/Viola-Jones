@@ -95,7 +95,8 @@ def learn(positive_iis, negative_iis, num_classifiers=-1, min_feature_width=1, m
         classifiers.append(best_feature)
 
         # update image weights
-        weights = np.array(list(map(lambda img_idx: weights[img_idx] * np.sqrt((1-best_error)/best_error) if labels[img_idx] != votes[img_idx, best_feature_idx] else weights[img_idx] * np.sqrt(best_error/(1-best_error)), range(num_imgs))))
+        beta = best_error/(1-best_error)
+        weights = np.array(list(map(lambda img_idx: weights[img_idx] * beta**(int(labels[img_idx] == votes[img_idx, best_feature_idx])), range(num_imgs))))
 
         # remove feature (a feature can't be selected twice)
         feature_indexes.remove(best_feature_idx)
