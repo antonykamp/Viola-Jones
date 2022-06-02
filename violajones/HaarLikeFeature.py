@@ -87,7 +87,7 @@ class HaarLikeFeature(object):
         :rtype: int
         """
         score = self.get_score(int_img)
-        return self.adaboost.predict([score])[0]
+        return self.adaboost.predict([[score]])[0]
     
     def fit(self, scores, labels):
         """
