@@ -87,7 +87,7 @@ class HaarLikeFeature(object):
         :rtype: int
         """
         score = self.get_score(int_img)
-        return self.adaboost.predict([[score]])[0]
+        return self.adaboost.predict([score])[0]
     
     def fit(self, scores, labels):
         """
@@ -123,9 +123,9 @@ class HaarLikeFeature(object):
             return self.weight * self.get_best_vote(int_img)
         return self.weight * self.get_vote(int_img)
     
-    def get_vote_specified_position(self, int_img, top_left, bottom_right):
+    def get_score_specified_position(self, int_img, top_left, bottom_right):
         """
-        Returns the vote of an image of this feature at a specific position. 
+        Returns the score of an image of this feature at a specific position. 
         For this, the function edits the top_left and bottom_right instance variable 
         temporarily
         :param int_img: Integral image array
@@ -134,7 +134,7 @@ class HaarLikeFeature(object):
         :param top_left: Tuple with integer
         :param top_left: New bottom right position of the feature
         :param top_left: Tuple with integer
-        :return: 1 if the best position votes positively, otherwise 0
+        :return: Score for given feature
         :rtype: int
         """
         old_top_left = self.top_left
@@ -143,7 +143,7 @@ class HaarLikeFeature(object):
         self.top_left = top_left
         self.bottom_right = bottom_right
         
-        vote = self.get_vote(int_img)
+        vote = self.get_score(int_img)
         
         self.top_left = old_top_left
         self.bottom_right = old_bottom_right
@@ -160,12 +160,11 @@ class HaarLikeFeature(object):
         """
         int_img_height, int_img_width = int_img.shape
         
-        max_vote = -float("inf")
-        
+        scores = []
         for left_border in range(int_img_width-self.width-1):
             for top_border in range(int_img_height-self.height-1):
                 tmp_top_left = (left_border, top_border)
                 tmp_bottom_right = (left_border+self.width, top_border+self.height)
-                max_vote = max(max_vote, self.get_vote_specified_position(int_img, tmp_top_left, tmp_bottom_right))
-        return max_vote
+                scores.append(self.get_score_specified_position(int_img, tmp_top_left, tmp_bottom_right))
+        return max(self.predict(scores))
 
