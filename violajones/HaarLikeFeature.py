@@ -150,6 +150,17 @@ class HaarLikeFeature(object):
         
         return vote
     
+    def get_position_to_score_dict(self, int_img):
+        int_img_height, int_img_width = int_img.shape
+        
+        scores = {}
+        for left_border in range(int_img_width-self.width-self.top_left[0]-1):
+            for top_border in range(int_img_height-self.height-self.top_left[1]-1):
+                tmp_top_left = self.top_left + (left_border, top_border)
+                tmp_bottom_right = self.bottom_right + (left_border, top_border) + (self.width, self.height)
+                scores[(left_border, top_border)] = self.get_score_specified_position(int_img, tmp_top_left, tmp_bottom_right)
+        return scores
+
     def get_best_vote(self, int_img):
         """
         Get best vote of an integral image with this feature indepentend of the position.
@@ -158,13 +169,5 @@ class HaarLikeFeature(object):
         :return: 1 if the best position votes positively, otherwise 0
         :rtype: int
         """
-        int_img_height, int_img_width = int_img.shape
-        
-        scores = []
-        for left_border in range(int_img_width-self.width-1):
-            for top_border in range(int_img_height-self.height-1):
-                tmp_top_left = (left_border, top_border)
-                tmp_bottom_right = (left_border+self.width, top_border+self.height)
-                scores.append(self.get_score_specified_position(int_img, tmp_top_left, tmp_bottom_right))
-        return max(self.predict(scores))
+        return max(self.predict(self.get_position_to_score_dict(int_img).values()))
 
