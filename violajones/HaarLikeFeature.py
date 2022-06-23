@@ -154,10 +154,10 @@ class HaarLikeFeature(object):
         int_img_height, int_img_width = int_img.shape
         
         scores = {}
-        for left_border in range(int_img_width-self.width-self.top_left[0]-1):
-            for top_border in range(int_img_height-self.height-self.top_left[1]-1):
-                tmp_top_left = self.top_left + (left_border, top_border)
-                tmp_bottom_right = self.bottom_right + (left_border, top_border) + (self.width, self.height)
+        for left_border in range(int_img_width-self.width-self.top_left[0]):
+            for top_border in range(int_img_height-self.height-self.top_left[1]):
+                tmp_top_left = (self.top_left[0] + left_border, self.top_left[1] + top_border)
+                tmp_bottom_right = (self.top_left[0] +left_border + self.width, self.top_left[1]+top_border+self.height)
                 scores[(left_border, top_border)] = self.get_score_specified_position(int_img, tmp_top_left, tmp_bottom_right)
         return scores
 
@@ -170,4 +170,10 @@ class HaarLikeFeature(object):
         :rtype: int
         """
         return max(self.predict(self.get_position_to_score_dict(int_img).values()))
+    
+    def get_all_position_vote(self, int_img):
+        position_to_score = self.get_position_to_score_dict(int_img)
+        weighted_predictions = self.predict(position_to_score.values()) * self.weight
+        positions = position_to_score.keys()
+        return dict(zip(positions, weighted_predictions))
 
