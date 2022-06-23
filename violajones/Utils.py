@@ -23,6 +23,18 @@ def ensemble_vote(int_img, classifiers):
     return 1 if sum([c.get_weighted_vote(int_img) for c in classifiers]) >= 0.5*sum([c.weight for c in classifiers]) else 0
 
 
+def ensemble_all_positions(int_img, classifiers):
+    position_vote_dict_of_classifier = [c.get_all_position_vote(int_img) for c in classifiers]
+    positions = [d.keys() for d in position_vote_dict_of_classifier]
+    overlapping_positions = set(positions[0]).intersection(*positions[1:])
+    return [position for position in overlapping_positions if sum([position_vote_dict_of_classifier[c_idx][position] for c_idx in range(len(classifiers))]) >= 0.5*sum([c.weight for c in classifiers])]
+
+
+def ensemble_all_positions_all(int_imgs, classifiers):
+    vote_partial = partial(ensemble_all_positions, classifiers=classifiers)
+    return list(map(vote_partial, int_imgs))
+
+
 def ensemble_all_vote(int_img, classifiers):
     """
     Classifies given integral image (numpy array) using given classifiers, i.e.
