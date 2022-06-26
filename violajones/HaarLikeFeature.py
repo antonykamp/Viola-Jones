@@ -177,3 +177,20 @@ class HaarLikeFeature(object):
         positions = position_to_score.keys()
         return dict(zip(positions, weighted_predictions))
 
+    def get_score_relative_position(self, int_img, top_left):
+        top_left_feature = (top_left[0]+self.top_left[0], top_left[1]+self.top_left[1])
+        bottom_right_feature = (top_left_feature[0]+self.width, top_left_feature[1]+self.height)
+        return self.get_score_specified_position(int_img, top_left_feature, bottom_right_feature)
+    
+    def get_weighted_votes_relative_positions(self, int_img, relative_positions):
+        scores = [self.get_score_relative_position(int_img, pos) for pos in relative_positions]
+        weighted_vote = self.predict(scores) * self.weight
+        return weighted_vote
+    
+    def does_feature_fit_in_image(self, int_img, relative_position):
+        relative_x, relative_y = relative_position
+        static_x, static_y = self.top_left
+        check_width = (relative_x + static_x + self.width) < len(int_img)
+        check_height = (relative_y + static_y + self.height) < len(int_img[0])
+        return check_width + check_height
+        
