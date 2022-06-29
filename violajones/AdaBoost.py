@@ -65,26 +65,27 @@ def learn(positive_iis, negative_iis, num_classifiers=-1, min_feature_width=1, m
     classification_errors = list(np.zeros(len(feature_indexes)))
     votes = np.zeros((num_features, num_imgs))
     
-    print('Evaluating Adaboost classifiers and errors..')
-    bar = progressbar.ProgressBar()
-    for f in bar(range(len(feature_indexes))):
-        f_idx = feature_indexes[f]
-        f_scores = [scores[img_idx, f_idx] for img_idx in range(num_imgs)]
-        f = features[f_idx]
-        # Train ababoost
-        f.fit(f_scores, labels)
-        # predict with adaboost
-        f_votes = f.predict(f_scores)
-        votes[f_idx, :] = np.array(f_votes)
-        error = sum(map(lambda img_idx: weights[img_idx] * np.abs(votes[f_idx, img_idx] - labels[img_idx]), range(num_imgs)))
-        classification_errors[f_idx] = error
     # select classifiers
     classifiers = []
-
+    
     print('Selecting classifiers..')
-    bar = progressbar.ProgressBar()
-    for i in bar(range(num_classifiers)):
+    for i in range(num_classifiers):
         print('Classifier {}/{}'.format(i, num_classifiers))
+        
+        bar = progressbar.ProgressBar()
+        for f in bar(range(len(feature_indexes))):
+            f_idx = feature_indexes[f]
+            f_scores = [scores[img_idx, f_idx] for img_idx in range(num_imgs)]
+            feature = features[f_idx]
+            # Train ababoost
+            feature.fit(f_scores, labels)
+            # predict with adaboost
+            f_votes = feature.predict(f_scores)
+            
+            votes[f_idx, :] = np.array(f_votes)
+            error = sum(map(lambda img_idx: weights[img_idx] * np.abs(votes[f_idx, img_idx] - labels[img_idx]), range(num_imgs)))
+            classification_errors[f] = error
+        
         # normalize weights
         weights *= 1. / np.sum(weights)            
 
@@ -103,12 +104,27 @@ def learn(positive_iis, negative_iis, num_classifiers=-1, min_feature_width=1, m
 
         # update image weights
         weights = np.array(list(map(lambda img_idx: weights[img_idx] * beta**(int(labels[img_idx] == votes[best_feature_idx, img_idx])), range(num_imgs))))
-
+        
+        # remove wrong classified images from labels, weight and scores
+        wrong_classified_indexes = [img_idx for img_idx in range(num_imgs) if labels[img_idx] != votes[best_feature_idx, img_idx]]
+        print(wrong_classified_indexes)
+        delete_elements(labels, wrong_classified_indexes)
+        delete_elements(weights, wrong_classified_indexes)
+        delete_elements(scores, wrong_classified_indexes)
+        num_imgs -= len(wrong_classified_indexes)
+        
         # remove feature (a feature can't be selected twice)
         del classification_errors[min_error_idx]
         feature_indexes.remove(best_feature_idx)
 
     return classifiers
+
+
+def delete_elements(list_object, indexes):
+    indexes = sorted(indexes, reverse=True)
+    for idx in indexes:
+        if idx < len(list_object):
+            list_object.pop(idx)
 
 
 def _get_feature_score(feature, image):
