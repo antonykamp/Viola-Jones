@@ -7,12 +7,10 @@ import sys
 import pickle
 
 # sys.argv
-# 1 positive training npy files
-# 2 negative training npy files
-# 3 pickle file in/output
-# 4 positive testing npy files
-# 5 negative testing npy files
-# 3 output path
+# 1 pickle file in/output
+# 2 positive test npy files
+# 3 negative test npy files
+
 if __name__ == "__main__":
     pickle_file_path = sys.argv[1]
     pos_testing_path = sys.argv[2]
