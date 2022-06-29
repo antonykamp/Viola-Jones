@@ -24,7 +24,7 @@ def ensemble_vote(int_img, classifiers):
     return 1 if sum([c.get_weighted_vote(int_img) for c in classifiers]) >= 0.5*sum([c.weight for c in classifiers]) else 0
 
 
-def ensemble_all_positions(int_img, classifiers):
+def ensemble_all_positions(int_img, classifiers, just_check=False):
     position_vote_dict_of_classifier = [classifiers[0].get_all_position_vote(int_img)]
     positions = [p for p, w in position_vote_dict_of_classifier[0].items() if w != 0]
     use_position = [True]*len(positions)
@@ -56,8 +56,11 @@ def ensemble_all_positions(int_img, classifiers):
             position_vote_dict_of_classifier[new_classifier_idx][curr_pos] = weighted_votes[curr_pos_idx]
             if sum([position_vote_dict_of_classifier[c_idx][curr_pos] for c_idx in range(new_classifier_idx)]) < 0.5*sum([c.weight for c in classifiers[:new_classifier_idx+1]]):
                 use_position[possible_pos_idx[curr_pos_idx]] = False
-
-    return [positions[p_idx] for p_idx in range(len(positions)) if use_position[p_idx]]
+    
+    founded = [positions[p_idx] for p_idx in range(len(positions)) if use_position[p_idx]]
+    if just_check:
+        return len(founded) != 0
+    return founded
 
 
 def ensemble_all_positions_all(int_imgs, classifiers):
@@ -78,7 +81,7 @@ def ensemble_all_vote(int_img, classifiers):
     :return: 1 iff sum of classifier votes is greater 0, else 0
     :rtype: int
     """
-    return 1 if sum([c.get_weighted_vote(int_img, use_best_vote = True) for c in classifiers]) >= 0.5*sum([c.weight for c in classifiers]) else 0
+    return ensemble_all_positions(int_img, classifiers, just_check=True)
 
 
 def ensemble_vote_all(int_imgs, classifiers):
