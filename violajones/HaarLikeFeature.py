@@ -150,16 +150,14 @@ class HaarLikeFeature(object):
         
         return vote
     
-    def get_position_to_score_dict(self, int_img):
+    def get_all_possible_positions(self, int_img):
         int_img_height, int_img_width = int_img.shape
-        
-        scores = {}
+        positions = []
         for left_border in range(int_img_width-self.width-self.top_left[0]):
             for top_border in range(int_img_height-self.height-self.top_left[1]):
-                tmp_top_left = (self.top_left[0] + left_border, self.top_left[1] + top_border)
-                tmp_bottom_right = (self.top_left[0] +left_border + self.width, self.top_left[1]+top_border+self.height)
-                scores[(left_border, top_border)] = self.get_score_specified_position(int_img, tmp_top_left, tmp_bottom_right)
-        return scores
+                positions.append((left_border, top_border))
+        return positions
+
 
     def get_best_vote(self, int_img):
         """
@@ -169,24 +167,39 @@ class HaarLikeFeature(object):
         :return: 1 if the best position votes positively, otherwise 0
         :rtype: int
         """
-        return max(self.predict(self.get_position_to_score_dict(int_img).values()))
+        return max(self.get_all_position_vote(int_img).values())
+
+    def get_scores_relative_positions(self, int_img, positions):
+        scores = []
+        for left_border, top_border in positions:    
+            tmp_top_left = (self.top_left[0] + left_border, self.top_left[1] + top_border)
+            tmp_bottom_right = (self.top_left[0] +left_border + self.width, self.top_left[1]+top_border+self.height)
+            scores.append(self.get_score_specified_position(int_img, tmp_top_left, tmp_bottom_right))
+        return scores
     
     def get_all_position_vote(self, int_img):
-        position_to_score = self.get_position_to_score_dict(int_img)
-        weighted_predictions = self.predict(position_to_score.values()) * self.weight
-        positions = position_to_score.keys()
+        positions = self.get_all_possible_positions(int_img)
+        scores = self.get_scores_relative_positions(int_img, positions)
+        votes = self.predict(scores)
+        weighted_predictions = self.add_weight_to_vote(votes)
         return dict(zip(positions, weighted_predictions))
 
     def get_score_relative_position(self, int_img, top_left):
         top_left_feature = (top_left[0]+self.top_left[0], top_left[1]+self.top_left[1])
         bottom_right_feature = (top_left_feature[0]+self.width, top_left_feature[1]+self.height)
         return self.get_score_specified_position(int_img, top_left_feature, bottom_right_feature)
+
+    def get_votes_relative_positions(self, int_img, relative_positions):
+        scores = [self.get_score_relative_position(int_img, pos) for pos in relative_positions]
+        votes = self.predict(scores)
+        return votes
     
     def get_weighted_votes_relative_positions(self, int_img, relative_positions):
-        scores = [self.get_score_relative_position(int_img, pos) for pos in relative_positions]
-        weighted_vote = self.predict(scores) * self.weight
-        return weighted_vote
+        return self.add_weight_to_vote(self.get_votes_relative_positions(int_img, relative_positions))
     
+    def add_weight_to_vote(self, votes):
+        return votes * self.weight
+
     def does_feature_fit_in_image(self, int_img, relative_position):
         relative_x, relative_y = relative_position
         static_x, static_y = self.top_left
