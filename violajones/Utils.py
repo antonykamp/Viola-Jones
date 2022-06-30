@@ -25,47 +25,41 @@ def ensemble_vote(int_img, classifiers):
 
 
 def ensemble_all_positions(int_img, classifiers, just_check=False):
-    position_vote_dict_of_classifier = [classifiers[0].get_all_position_vote(int_img)]
-    positions = [p for p, w in position_vote_dict_of_classifier[0].items() if w != 0]
-    use_position = [True]*len(positions)
-    for classifier in range(len(classifiers)-1):
-        # Select next stage
-        new_classifier_idx = classifier+1
-        new_classifier = classifiers[new_classifier_idx]
-        
-        # Get position that passes the las stages
-        possible_pos_idx = [p_idx for p_idx in range(len(positions)) if use_position[p_idx]]
-        possible_pos = [positions[p_idx] for p_idx in possible_pos_idx]
+    possible_pos = np.array(classifiers[0].get_all_possible_positions(int_img))
+    possible_pos_idx = np.arange(len(possible_pos))
+    num_positions = len(possible_pos)
+    
+    print("Collect positions by checking stages")
+    bar = progressbar.ProgressBar()
+    for stage in bar(classifiers):
         
         # If no position passed the last stage, no faces is in the image
         if len(possible_pos) == 0:
-            return []
+            break
         
         # Look if the next feature fit in the image at the relative position
-        images_fit_in_feature = [new_classifier.does_feature_fit_in_image(int_img, pos) for pos in possible_pos]
-        possible_pos = [possible_pos[pos_idx] for pos_idx in range(len(possible_pos)) if images_fit_in_feature[pos_idx]]
-        possible_pos = [possible_pos[pos_idx] for pos_idx in range(len(possible_pos_idx)) if images_fit_in_feature[pos_idx]]
+        not_fit_images = [pos_idx for pos_idx in range(num_positions) if not stage.does_stage_fit_in_image(int_img, pos)]
+        possible_pos = np.delete(possible_pos, not_fit_images)
+        possible_pos_idx = np.delete(possible_pos_idx, not_fit_images)
+        num_positions = len(possible_pos)
         
         # Get votes of the image at the relative positions
-        weighted_votes = new_classifier.get_weighted_votes_relative_positions(int_img, possible_pos)
+        votes = stage.get_votes_relative_positions(int_img, possible_pos)
         
-        # update positions to use in next stage
-        position_vote_dict_of_classifier += [dict()]
-        for curr_pos_idx in range(len(possible_pos)):
-            curr_pos = possible_pos[curr_pos_idx]
-            position_vote_dict_of_classifier[new_classifier_idx][curr_pos] = weighted_votes[curr_pos_idx]
-            if sum([position_vote_dict_of_classifier[c_idx][curr_pos] for c_idx in range(new_classifier_idx)]) < 0.5*sum([c.weight for c in classifiers[:new_classifier_idx+1]]):
-                use_position[possible_pos_idx[curr_pos_idx]] = False
-    
-    founded = [positions[p_idx] for p_idx in range(len(positions)) if use_position[p_idx]]
+        # update positions to use in next stage if passed stage
+        not_passed_image_idx = [pos_idx for pos_idx in range(num_positions) if not votes[pos_idx]]
+        possible_pos = np.delete(possible_pos, not_passed_image_idx)
+        possible_pos_idx = np.delete(possible_pos_idx, not_passed_image_idx)
+        num_positions = len(possible_pos)
+        
     if just_check:
-        return len(founded) != 0
-    return founded
-
-
+        return len(possible_pos) != 0
+    return possible_pos
+            
 def ensemble_all_positions_all(int_imgs, classifiers):
-    vote_partial = partial(ensemble_all_positions, classifiers=classifiers)
-    return list(map(vote_partial, int_imgs))
+    """From list containing images collect positions in images with faces"""
+    collect_partial = partial(ensemble_all_positions, classifiers=classifiers)
+    return list(map(collect_partial, int_imgs))
 
 
 def ensemble_all_vote(int_img, classifiers):
