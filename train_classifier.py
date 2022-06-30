@@ -18,7 +18,7 @@ if __name__ == "__main__":
     neg_training_path = sys.argv[2]
     pickle_file_path = sys.argv[3]
     
-    num_classifiers = 3
+    num_feature_in_stage = [2,1,1]
     # For performance reasons restricting feature size
     min_feature_height = 5
     max_feature_height = 9
@@ -32,7 +32,7 @@ if __name__ == "__main__":
       print('..done. ' + str(len(non_faces_ii_training)) + ' non faces loaded.\n')
 
       # classifiers are haar like features
-      classifiers = ab.learn(faces_ii_training, non_faces_ii_training, num_classifiers, min_feature_height, max_feature_height, min_feature_width, max_feature_width)
+      classifiers = ab.learn(faces_ii_training, non_faces_ii_training, num_feature_in_stage, min_feature_height, max_feature_height, min_feature_width, max_feature_width)
       with open(pickle_file_path,"wb") as filehandler:
         pickle.dump(classifiers,filehandler)
     else:
